@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:noble
 
 ARG BUILDER_UID=1000
 ARG BUILDER_GID=1000
@@ -7,35 +7,30 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        software-properties-common \
         ca-certificates \
         curl \
         gnupg \
         zip \
         unzip \
         git \
-        apache2 && \
-    add-apt-repository ppa:ondrej/php -y && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        libapache2-mod-php8.3 \
-        php8.3-cli \
-        php8.3-common \
-        php8.3-mbstring \
-        php8.3-xml \
-        php8.3-pgsql \
-        php8.3-redis \
-        php8.3-intl \
-        php8.3-zip \
-        php8.3-curl \
-        php8.3-gd \
-        php8.3-bcmath \
-        php8.3-gmp \
-        php8.3-sqlite3 \
-        php8.3-opcache \
-        php8.3-xdebug \
+        nginx \
+        supervisor \
+        php-cli \
+        php-fpm \
+        php-common \
+        php-mbstring \
+        php-xml \
+        php-pgsql \
+        php-redis \
+        php-intl \
+        php-zip \
+        php-curl \
+        php-gd \
+        php-bcmath \
+        php-gmp \
+        php-sqlite3 \
+        php-opcache \
+        php-xdebug \
         postgresql-client && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
@@ -47,32 +42,40 @@ RUN apt-get update && \
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-RUN a2enmod rewrite headers && \
-    echo "ServerName localhost" >> /etc/apache2/apache2.conf && \
-    update-alternatives --set php /usr/bin/php8.3
-
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf && \
-    sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf && \
-    printf '<Directory ${APACHE_DOCUMENT_ROOT}>\n    AllowOverride All\n    Require all granted\n</Directory>\n' > /etc/apache2/conf-available/laravel.conf && \
-    a2enconf laravel
-
-RUN if id ${BUILDER_UID} >/dev/null 2>&1; then \
-        userdel $(id -nu ${BUILDER_UID}) 2>/dev/null || true; \
+# Replace the default noble appuser (uid 1000) if host UID/GID differ; otherwise reuse it.
+RUN CURRENT_USER=$(getent passwd ${BUILDER_UID} | cut -d: -f1 || true) && \
+    if [ -n "${CURRENT_USER}" ] && [ "${CURRENT_USER}" != "appuser" ]; then \
+        userdel -r "${CURRENT_USER}" 2>/dev/null || true; \
     fi && \
-    if getent group ${BUILDER_GID} >/dev/null 2>&1; then \
-        EXISTING_GROUP_NAME=$(getent group ${BUILDER_GID} | cut -d: -f1); \
-    else \
+    if ! getent group ${BUILDER_GID} >/dev/null 2>&1; then \
         groupadd -g ${BUILDER_GID} appuser; \
-        EXISTING_GROUP_NAME=appuser; \
     fi && \
-    useradd -u ${BUILDER_UID} -g ${EXISTING_GROUP_NAME} -m -s /bin/bash appuser && \
-    sed -i "s/export APACHE_RUN_USER=www-data/export APACHE_RUN_USER=appuser/" /etc/apache2/envvars && \
-    sed -i "s/export APACHE_RUN_GROUP=www-data/export APACHE_RUN_GROUP=appuser/" /etc/apache2/envvars
+    if ! id appuser >/dev/null 2>&1; then \
+        useradd -u ${BUILDER_UID} -g ${BUILDER_GID} -m -s /bin/bash appuser; \
+    fi
+
+# Nginx: run as appuser, single site pointing at Laravel public/.
+RUN sed -ri 's!^user .*;!user appuser;!' /etc/nginx/nginx.conf && \
+    rm -f /etc/nginx/sites-enabled/default
+COPY --chmod=0644 docker/dev/nginx.conf /etc/nginx/sites-available/settle.conf
+RUN ln -s /etc/nginx/sites-available/settle.conf /etc/nginx/sites-enabled/settle.conf && \
+    mkdir -p /var/lib/nginx /var/log/nginx /run && \
+    chown -R appuser:appuser /var/lib/nginx /var/log/nginx
+
+# PHP-FPM: run pool as appuser, listen on a unix socket shared with nginx.
+RUN sed -ri 's!^user = .*!user = appuser!'   /etc/php/8.3/fpm/pool.d/www.conf && \
+    sed -ri 's!^group = .*!group = appuser!' /etc/php/8.3/fpm/pool.d/www.conf && \
+    sed -ri 's!^listen = .*!listen = /run/php/php8.3-fpm.sock!' /etc/php/8.3/fpm/pool.d/www.conf && \
+    sed -ri 's!^;?listen.owner = .*!listen.owner = appuser!'   /etc/php/8.3/fpm/pool.d/www.conf && \
+    sed -ri 's!^;?listen.group = .*!listen.group = appuser!'   /etc/php/8.3/fpm/pool.d/www.conf && \
+    mkdir -p /run/php && chown appuser:appuser /run/php
+
+# Supervisor: run nginx and php-fpm side by side in foreground.
+COPY --chmod=0644 docker/dev/supervisord.conf /etc/supervisor/conf.d/settle.conf
 
 WORKDIR /var/www/html
 RUN chown -R appuser:appuser /var/www/html
 
 EXPOSE 80
 
-CMD ["apache2ctl", "-D", "FOREGROUND"]
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]

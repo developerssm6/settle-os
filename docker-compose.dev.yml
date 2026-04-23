@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.dev
       args:
-        BUILDER_UID: "${UID:-1000}"
-        BUILDER_GID: "${GID:-1000}"
+        BUILDER_UID: "${BUILDER_UID:-1001}"
+        BUILDER_GID: "${BUILDER_GID:-1001}"
     image: settle-os/app
     container_name: settle-app
     ports:
