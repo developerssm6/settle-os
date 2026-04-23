@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
       args:
         BUILDER_UID: "${BUILDER_UID:-1001}"
         BUILDER_GID: "${BUILDER_GID:-1001}"
