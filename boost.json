@@ -1,0 +1,23 @@
+{
+    "agents": [
+        "claude_code"
+    ],
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "packages": [
+        "spatie/laravel-medialibrary",
+        "lorisleiva/laravel-actions",
+        "spatie/laravel-permission"
+    ],
+    "sail": false,
+    "skills": [
+        "laravel-best-practices",
+        "pest-testing",
+        "inertia-vue-development",
+        "tailwindcss-development",
+        "laravel-actions",
+        "medialibrary-development",
+        "laravel-permission-development"
+    ]
+}

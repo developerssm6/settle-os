@@ -3,8 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Root → login
+// Root → login for guests; post-login redirect target for Breeze auth controllers
 Route::get('/', fn () => redirect()->route('login'));
+
+// Named 'dashboard' route — Breeze auth controllers redirect here after login/register.
+// Role-based routing will be added in M3 once spatie/permission middleware is wired.
+Route::get('/dashboard', fn () => redirect()->route('admin.dashboard'))
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Admin routes (role guard added in M3 once spatie/permission middleware is wired)
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
