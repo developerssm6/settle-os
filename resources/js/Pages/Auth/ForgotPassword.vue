@@ -1,66 +1,29 @@
 <script setup lang="ts">
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import { useForm } from '@inertiajs/vue3';
 
-defineProps<{
-    status?: string;
-}>();
+defineOptions({ layout: AuthLayout });
+defineProps<{ status?: string }>();
 
-const form = useForm({
-    email: '',
-});
-
-const submit = () => {
-    form.post(route('password.email'));
-};
+const form = useForm({ email: '' });
+function submit() { form.post(route('password.email')); }
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Forgot Password" />
-
-        <div class="mb-4 text-sm text-gray-600">
-            Forgot your password? No problem. Just let us know your email
-            address and we will email you a password reset link that will allow
-            you to choose a new one.
-        </div>
-
-        <div
-            v-if="status"
-            class="mb-4 text-sm font-medium text-green-600"
-        >
-            {{ status }}
-        </div>
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
+    <VCard>
+        <VCardTitle class="text-h6 font-semibold pa-6 pb-2">Reset password</VCardTitle>
+        <VCardText class="pa-6 pt-2">
+            <p class="text-body-2 text-medium-emphasis mb-4">
+                Enter your email and we'll send you a reset link.
+            </p>
+            <VAlert v-if="status" type="success" variant="tonal" density="compact" class="mb-4">{{ status }}</VAlert>
+            <form @submit.prevent="submit">
+                <VTextField v-model="form.email" label="Email" type="email" autocomplete="email" autofocus class="mb-4" :error-messages="form.errors.email" />
+                <VBtn type="submit" color="primary" block :loading="form.processing">Send reset link</VBtn>
+            </form>
+            <div class="text-center mt-4">
+                <a :href="route('login')" class="text-sm text-primary">Back to sign in</a>
             </div>
-
-            <div class="mt-4 flex items-center justify-end">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Email Password Reset Link
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+        </VCardText>
+    </VCard>
 </template>

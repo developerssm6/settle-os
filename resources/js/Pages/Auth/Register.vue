@@ -1,115 +1,39 @@
 <script setup lang="ts">
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import { useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
-const form = useForm({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
-});
+defineOptions({ layout: AuthLayout });
 
-const submit = () => {
-    form.post(route('register'), {
-        onFinish: () => {
-            form.reset('password', 'password_confirmation');
-        },
-    });
-};
+const form = useForm({ name: '', email: '', password: '', password_confirmation: '' });
+const showPassword = ref(false);
+
+function submit() {
+    form.post(route('register'), { onFinish: () => form.reset('password', 'password_confirmation') });
+}
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Register" />
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="name" value="Name" />
-
-                <TextInput
-                    id="name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    v-model="form.name"
-                    required
-                    autofocus
-                    autocomplete="name"
+    <VCard>
+        <VCardTitle class="text-h6 font-semibold pa-6 pb-2">Create account</VCardTitle>
+        <VCardText class="pa-6 pt-2">
+            <form @submit.prevent="submit">
+                <VTextField v-model="form.name" label="Full name" autocomplete="name" autofocus class="mb-3" :error-messages="form.errors.name" />
+                <VTextField v-model="form.email" label="Email" type="email" autocomplete="email" class="mb-3" :error-messages="form.errors.email" />
+                <VTextField
+                    v-model="form.password" label="Password" :type="showPassword ? 'text' : 'password'"
+                    autocomplete="new-password" class="mb-3" :error-messages="form.errors.password"
+                    :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'" @click:append-inner="showPassword = !showPassword"
                 />
-
-                <InputError class="mt-2" :message="form.errors.name" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="email" value="Email" />
-
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autocomplete="username"
+                <VTextField
+                    v-model="form.password_confirmation" label="Confirm password" :type="showPassword ? 'text' : 'password'"
+                    autocomplete="new-password" class="mb-4" :error-messages="form.errors.password_confirmation"
                 />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel
-                    for="password_confirmation"
-                    value="Confirm Password"
-                />
-
-                <TextInput
-                    id="password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password_confirmation"
-                    required
-                    autocomplete="new-password"
-                />
-
-                <InputError
-                    class="mt-2"
-                    :message="form.errors.password_confirmation"
-                />
-            </div>
-
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    :href="route('login')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
-                    Already registered?
-                </Link>
-
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Register
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+                <VBtn type="submit" color="primary" block :loading="form.processing">Create account</VBtn>
+                <div class="text-center mt-4">
+                    <a :href="route('login')" class="text-sm text-primary">Already have an account?</a>
+                </div>
+            </form>
+        </VCardText>
+    </VCard>
 </template>

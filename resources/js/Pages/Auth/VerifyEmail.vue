@@ -1,59 +1,32 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import { useForm } from '@inertiajs/vue3';
 
-const props = defineProps<{
-    status?: string;
-}>();
+defineOptions({ layout: AuthLayout });
+
+defineProps<{ status?: string }>();
 
 const form = useForm({});
-
-const submit = () => {
-    form.post(route('verification.send'));
-};
-
-const verificationLinkSent = computed(
-    () => props.status === 'verification-link-sent',
-);
+function submit() { form.post(route('verification.send')); }
+function logout() { useForm({}).post(route('logout')); }
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Email Verification" />
-
-        <div class="mb-4 text-sm text-gray-600">
-            Thanks for signing up! Before getting started, could you verify your
-            email address by clicking on the link we just emailed to you? If you
-            didn't receive the email, we will gladly send you another.
-        </div>
-
-        <div
-            class="mb-4 text-sm font-medium text-green-600"
-            v-if="verificationLinkSent"
-        >
-            A new verification link has been sent to the email address you
-            provided during registration.
-        </div>
-
-        <form @submit.prevent="submit">
-            <div class="mt-4 flex items-center justify-between">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Resend Verification Email
-                </PrimaryButton>
-
-                <Link
-                    :href="route('logout')"
-                    method="post"
-                    as="button"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >Log Out</Link
-                >
+    <VCard>
+        <VCardTitle class="text-h6 font-semibold pa-6 pb-2">Verify your email</VCardTitle>
+        <VCardText class="pa-6 pt-2">
+            <p class="text-body-2 text-medium-emphasis mb-4">
+                Thanks for signing up. Please verify your email address by clicking the link we sent you.
+            </p>
+            <VAlert v-if="status === 'verification-link-sent'" type="success" variant="tonal" density="compact" class="mb-4">
+                A new verification link has been sent to your email address.
+            </VAlert>
+            <div class="d-flex flex-column gap-3">
+                <VBtn color="primary" block :loading="form.processing" @click="submit">
+                    Resend verification email
+                </VBtn>
+                <VBtn variant="text" block @click="logout">Log out</VBtn>
             </div>
-        </form>
-    </GuestLayout>
+        </VCardText>
+    </VCard>
 </template>

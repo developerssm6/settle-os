@@ -1,3 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+body,
+.v-application {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Monospaced tabular numerals for monetary / percent values */
+.font-mono,
+.v-data-table td.col-money,
+.v-data-table td.col-percent {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Right-align monetary columns */
+.v-data-table td.col-money,
+.v-data-table th.col-money {
+    text-align: right !important;
+}
+
+/* Subtle row hover */
+.v-data-table tbody tr:hover td {
+    background: rgba(var(--v-theme-surface-variant), 0.6) !important;
+}

@@ -1,57 +1,33 @@
 <script setup lang="ts">
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import { useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
-const form = useForm({
-    password: '',
-});
+defineOptions({ layout: AuthLayout });
 
-const submit = () => {
-    form.post(route('password.confirm'), {
-        onFinish: () => {
-            form.reset();
-        },
-    });
-};
+const form = useForm({ password: '' });
+const showPassword = ref(false);
+
+function submit() {
+    form.post(route('password.confirm'), { onFinish: () => form.reset('password') });
+}
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Confirm Password" />
-
-        <div class="mb-4 text-sm text-gray-600">
-            This is a secure area of the application. Please confirm your
-            password before continuing.
-        </div>
-
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                    autofocus
+    <VCard>
+        <VCardTitle class="text-h6 font-semibold pa-6 pb-2">Confirm password</VCardTitle>
+        <VCardText class="pa-6 pt-2">
+            <p class="text-body-2 text-medium-emphasis mb-4">
+                This is a secure area. Please confirm your password to continue.
+            </p>
+            <form @submit.prevent="submit">
+                <VTextField
+                    v-model="form.password" label="Password" :type="showPassword ? 'text' : 'password'"
+                    autocomplete="current-password" autofocus class="mb-4" :error-messages="form.errors.password"
+                    :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'" @click:append-inner="showPassword = !showPassword"
                 />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4 flex justify-end">
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Confirm
-                </PrimaryButton>
-            </div>
-        </form>
-    </GuestLayout>
+                <VBtn type="submit" color="primary" block :loading="form.processing">Confirm</VBtn>
+            </form>
+        </VCardText>
+    </VCard>
 </template>
