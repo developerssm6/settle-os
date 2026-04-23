@@ -1,0 +1,118 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        BUILDER_UID: "${UID:-1000}"
+        BUILDER_GID: "${GID:-1000}"
+    image: settle-os/app
+    container_name: settle-app
+    ports:
+      - "${APP_PORT:-8000}:80"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: "${DB_DATABASE:-settle}"
+      DB_USERNAME: "${DB_USERNAME:-settle}"
+      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-settle}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-settle-secret}"
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION:-us-east-1}"
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: http://localhost:9000
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    networks:
+      - settle
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: settle-postgres
+    ports:
+      - "${FORWARD_DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-settle}"
+      POSTGRES_USER: "${DB_USERNAME:-settle}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-secret}"
+    volumes:
+      - settle-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-settle} -d ${DB_DATABASE:-settle}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - settle
+
+  redis:
+    image: redis:7-alpine
+    container_name: settle-redis
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - settle-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - settle
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: settle-mailpit
+    ports:
+      - "${FORWARD_MAIL_PORT:-1025}:1025"
+      - "${FORWARD_MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - settle
+
+  minio:
+    image: minio/minio:latest
+    container_name: settle-minio
+    ports:
+      - "${FORWARD_MINIO_PORT:-9000}:9000"
+      - "${FORWARD_MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: "${AWS_ACCESS_KEY_ID:-settle}"
+      MINIO_ROOT_PASSWORD: "${AWS_SECRET_ACCESS_KEY:-settle-secret}"
+    volumes:
+      - settle-minio:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - settle
+
+networks:
+  settle:
+    driver: bridge
+
+volumes:
+  settle-postgres:
+    driver: local
+  settle-redis:
+    driver: local
+  settle-minio:
+    driver: local
