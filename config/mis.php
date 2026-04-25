@@ -1,5 +1,8 @@
 <?php
 
+use App\Services\Tax\Calculators\IndiaGstCalculator;
+use App\Services\Tax\Calculators\IndiaTdsCalculator;
+
 /*
 |--------------------------------------------------------------------------
 | MIS Application Defaults
@@ -29,6 +32,18 @@ return [
         'payout.cutoff_day' => ['value' => '25',   'type' => 'integer', 'group' => 'payout', 'description' => 'Day of month after which payouts are held to next cycle'],
         'invoice.prefix' => ['value' => 'INV',  'type' => 'string',  'group' => 'invoice', 'description' => 'Invoice number prefix'],
         'invoice.fy_start_month' => ['value' => '4', 'type' => 'integer', 'group' => 'invoice', 'description' => 'Financial year start month (4 = April)'],
+    ],
+
+    /*
+     * Strategy registry for the tax engine. The TaxCalculatorRegistry walks
+     * this list and asks each calculator's supports() whether it handles a
+     * given TaxRule. Order matters when multiple calculators could match.
+     */
+    'tax' => [
+        'strategies' => [
+            'india_tds' => IndiaTdsCalculator::class,
+            'india_gst' => IndiaGstCalculator::class,
+        ],
     ],
 
 ];
